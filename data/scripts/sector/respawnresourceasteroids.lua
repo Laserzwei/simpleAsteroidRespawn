@@ -53,4 +53,5 @@ end
 
 
 end
-if not pcall(require, "mods/asteroidRespawn/scripts/sector/respawnresourceasteroids") then print("Failed to load asteroidRespawn") end
+local suc ,err = pcall(require, "mods/simpleAsteroidRespawn/scripts/sector/respawnresourceasteroids")
+if not suc then print("Failed to load simpleAsteroidRespawn", err) end
