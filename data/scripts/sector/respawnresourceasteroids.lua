@@ -1,6 +1,6 @@
 if onClient() then print("Why u on client?") --[[return]] end
 
-local config = require("data/config/simpleasteroidRespawn")
+local config = include("data/config/simpleasteroidRespawn")
 
 --overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
@@ -44,7 +44,7 @@ function RespawnResourceAsteroids.respawn()     -- respawns a % of the original 
             c= c+1
             local sphere = Sphere(astro.translationf, random():getFloat(180, 250))
             local translation = sphere.center + random():getDirection() * sphere.radius
-            local asteroid = generator:createSmallAsteroid(translation, size, true, generator:getAsteroidType())
+            local asteroid = generator:createSmallAsteroid(translation, size, 1, generator:getAsteroidType())
             spawned[#spawned+1] = asteroid
         end
     end
