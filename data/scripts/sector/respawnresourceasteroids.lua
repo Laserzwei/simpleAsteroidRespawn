@@ -1,4 +1,4 @@
-if onClient() then print("Why u on client?") --[[return]] end
+if onClient() then return end
 
 local config = include("data/config/simpleasteroidRespawn")
 
