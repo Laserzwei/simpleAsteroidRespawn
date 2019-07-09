@@ -1,57 +1,76 @@
-if onServer() then
+if onClient() then return end
 
-package.path = package.path .. ";data/scripts/lib/?.lua"
-local SectorGenerator = require("SectorGenerator")
-local Placer = require("placer")
+local config = include("data/config/simpleasteroidRespawn")
 
--- Don't remove or alter the following comment, it tells the game the namespace this script lives in. If you remove it, the script will break.
--- namespace RespawnResourceAsteroids
-RespawnResourceAsteroids = {}
-
+--overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
+    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
+    if not maxSpawnableAsteroids then
+        maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
+        Sector():setValue("maxSpawnableAsteroids", maxSpawnableAsteroids)
+    end
+    Sector():registerCallback("onRestoredFromDisk", "onRestoredFromDisk")
+end
 
-    local richAsteroids = {Sector():getEntitiesByComponent(ComponentType.MineableMaterial)}
-    if #richAsteroids >= 5 then return end
+function RespawnResourceAsteroids.getUpdateInterval()
+    return config.respawnTime
+end
 
+function RespawnResourceAsteroids.updateServer(timestep)
+    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
+    if maxSpawnableAsteroids then
+        RespawnResourceAsteroids.respawn()
+    end
+end
+
+function RespawnResourceAsteroids.respawn()     -- respawns a % of the original Asteroid #
+    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids") or 0
+    local numRichAsteroids = RespawnResourceAsteroids.getRichAsteroids()
+    if numRichAsteroids >= maxSpawnableAsteroids then return end    -- enough asteroids in sector
     -- respawn them
     local asteroids = {Sector():getEntitiesByType(EntityType.Asteroid)}
     local generator = SectorGenerator(Sector():getCoordinates())
-
     local spawned = {}
 
-    for _, asteroid in pairs(asteroids) do
+    local amount = maxSpawnableAsteroids * config.respawnAmount
+    if amount < 1 then amount = 1 end
+    local c = 0
+    for i=1, amount do
+        local size = random():getFloat(5.0, 15.0)
+        local index = random():getInt(1, #asteroids)
 
-        local sphere = Sphere(asteroid.translationf, 200.0)
-        local others = {Sector():getEntitiesByLocation(sphere)}
-
-        local numEmptyAsteroids = 0
-        if #others >= 20 then
-            for _, entity in pairs(others) do
-                if entity:hasComponent(ComponentType.MineableMaterial) then
-                    numEmptyAsteroids = 0
-                    break
-                end
-
-                if entity.type == EntityType.Asteroid then
-                    numEmptyAsteroids = numEmptyAsteroids + 1
-                end
-            end
-        end
-
-        if numEmptyAsteroids >= 20 then
+        local astro = asteroids[index]
+        if valid(astro) then
+            c= c+1
+            local sphere = Sphere(astro.translationf, random():getFloat(180, 250))
             local translation = sphere.center + random():getDirection() * sphere.radius
-            local size = random():getFloat(5.0, 15.0)
-
-            local asteroid = generator:createSmallAsteroid(translation, size, true, generator:getAsteroidType())
-
-            table.insert(spawned, asteroid)
+            local asteroid = generator:createSmallAsteroid(translation, size, 1, generator:getAsteroidType())
+            spawned[#spawned+1] = asteroid
         end
     end
-
     Placer.resolveIntersections(spawned)
 end
 
-
+function RespawnResourceAsteroids.getRichAsteroids()
+    local asteroids = {}
+    local a = {Sector():getEntitiesByType(EntityType.Asteroid)} or {}
+    for _, astro in ipairs(a) do
+        local r = astro:getMineableResources()
+        if r then
+            asteroids[#asteroids+1] = astro
+        end
+    end
+    return #asteroids
 end
-local suc ,err = pcall(require, "mods/simpleAsteroidRespawn/scripts/sector/respawnresourceasteroids")
-if not suc then print("Failed to load simpleAsteroidRespawn", err) end
+
+function RespawnResourceAsteroids.onRestoredFromDisk(time)
+    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
+    if not maxSpawnableAsteroids then
+        maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
+        Sector():setValue("maxSpawnableAsteroids", maxSpawnableAsteroids)
+    end
+    local turns = time / config.respawnTime
+    for i=1,math.abs(math.min(turns,1/config.respawnAmount)) do -- We don't do more than the max required respawn cycles per load
+        RespawnResourceAsteroids.respawn()
+    end
+end
