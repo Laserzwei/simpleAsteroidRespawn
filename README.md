@@ -9,4 +9,4 @@ The delay between respawns and the amount that get respawned can be configured. 
 
 ## Installation
 
-Copy the content into their respective folders. This will overwrite _/data/scripts/sector/respawnresourceasteroids.lua_.
+Subscribe to it and Enable it in Settings -> Mods
