@@ -1,7 +1,8 @@
 if onClient() then return end
+-- TODO addShipProblem("respawning", entityId, "Asteroids respawn in this sector."%_t, "data/textures/icons/valuables-detected.png", highlightColor)
 
 local config = include("data/config/simpleasteroidRespawn")
-
+local highlightColor = ColorRGB(0.70, 0.73, 0.77) -- silver
 --overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
     local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
@@ -13,38 +14,37 @@ function RespawnResourceAsteroids.initialize()
 end
 
 function RespawnResourceAsteroids.getUpdateInterval()
-    return config.respawnTime
+    return config.respawnTime / 2
 end
 
 function RespawnResourceAsteroids.updateServer(timestep)
     local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
     if maxSpawnableAsteroids then
-        RespawnResourceAsteroids.respawn()
+        RespawnResourceAsteroids.respawn(timestep)
     end
 end
 
-function RespawnResourceAsteroids.respawn()     -- respawns a % of the original Asteroid #
+function RespawnResourceAsteroids.respawn(timestep)     -- respawns a % of the original Asteroid #
     local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids") or 0
+    if (maxSpawnableAsteroids == 0) then return end
     local numRichAsteroids = RespawnResourceAsteroids.getRichAsteroids()
     if numRichAsteroids >= maxSpawnableAsteroids then return end    -- enough asteroids in sector
+    local numRespawns = (timestep / config.respawnTime)
+    local amount = maxSpawnableAsteroids * config.respawnAmount * numRespawns
+    if (amount < 1) then return end -- not enough time passed or config.respawnAmount too low
+
     -- respawn them
     local asteroids = {Sector():getEntitiesByType(EntityType.Asteroid)}
     local generator = SectorGenerator(Sector():getCoordinates())
     local spawned = {}
-
-    local amount = maxSpawnableAsteroids * config.respawnAmount
-    if amount < 1 then amount = 1 end
-    local c = 0
     for i=1, amount do
-        local size = random():getFloat(5.0, 15.0)
+        local size = random():getFloat(5.0, 25.0)
         local index = random():getInt(1, #asteroids)
-
         local astro = asteroids[index]
         if valid(astro) then
-            c= c+1
             local sphere = Sphere(astro.translationf, random():getFloat(180, 250))
             local translation = sphere.center + random():getDirection() * sphere.radius
-            local asteroid = generator:createSmallAsteroid(translation, size, 1, generator:getAsteroidType())
+            local asteroid = generator:createSmallAsteroid(translation, size, true, generator:getAsteroidType())
             spawned[#spawned+1] = asteroid
         end
     end
@@ -69,8 +69,5 @@ function RespawnResourceAsteroids.onRestoredFromDisk(time)
         maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
         Sector():setValue("maxSpawnableAsteroids", maxSpawnableAsteroids)
     end
-    local turns = time / config.respawnTime
-    for i=1,math.abs(math.min(turns,1/config.respawnAmount)) do -- We don't do more than the max required respawn cycles per load
-        RespawnResourceAsteroids.respawn()
-    end
+    RespawnResourceAsteroids.respawn(time)
 end
