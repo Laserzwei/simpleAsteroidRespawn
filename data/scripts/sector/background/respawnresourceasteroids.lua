@@ -31,7 +31,11 @@ function RespawnResourceAsteroids.respawn(timestep)     -- respawns a % of the o
     if numRichAsteroids >= maxSpawnableAsteroids then return end    -- enough asteroids in sector
     local numRespawns = (timestep / config.respawnTime)
     local amount = maxSpawnableAsteroids * config.respawnAmount * numRespawns
+    if (numRichAsteroids + amount) >= maxSpawnableAsteroids then
+        amount = maxSpawnableAsteroids - numRichAsteroids
+    end
     if (amount < 1) then return end -- not enough time passed or config.respawnAmount too low
+
 
     -- respawn them
     local asteroids = {Sector():getEntitiesByType(EntityType.Asteroid)}
