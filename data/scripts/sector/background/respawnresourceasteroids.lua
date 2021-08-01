@@ -1,45 +1,65 @@
 if onClient() then return end
--- TODO addShipProblem("respawning", entityId, "Asteroids respawn in this sector."%_t, "data/textures/icons/valuables-detected.png", highlightColor)
 
 local config = include("data/config/simpleasteroidRespawn")
-local highlightColor = ColorRGB(0.70, 0.73, 0.77) -- silver
+local sector = Sector()
+
+self.respawnTime = config.respawnTime
+self.respawnAmount = config.respawnAmount  
+self.maxSpawnableAsteroids = nil
+
 --overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
-    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
-    if not maxSpawnableAsteroids then
-        maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
-        Sector():setValue("maxSpawnableAsteroids", maxSpawnableAsteroids)
+    RespawnResourceAsteroids.updateVars()
+    if self.maxSpawnableAsteroids == nil then
+        self.maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
+        print("Found respawnable Asteroids:", self.maxSpawnableAsteroids)
+        sector:setValue("maxSpawnableAsteroids", self.maxSpawnableAsteroids)
     end
-    Sector():registerCallback("onRestoredFromDisk", "onRestoredFromDisk")
+    
+    sector:registerCallback("onRestoredFromDisk", "onRestoredFromDisk")
+end
+
+function RespawnResourceAsteroids.updateVars() 
+    local maxSpawnableAsteroids = sector:getValue("maxSpawnableAsteroids")
+    if maxSpawnableAsteroids ~= nil then
+        self.maxSpawnableAsteroids = maxSpawnableAsteroids
+    end
+    local respawnTime = sector:getValue("rra_respawnTime")
+    if respawnTime ~= nil then
+        self.respawnTime = respawnTime
+    end
+    local respawnAmount = sector:getValue("rra_respawnAmount")
+    if respawnAmount ~= nil then
+        self.respawnAmount = respawnAmount
+    end
 end
 
 function RespawnResourceAsteroids.getUpdateInterval()
-    return config.respawnTime / 2
+    return self.respawnTime / 2
 end
 
 function RespawnResourceAsteroids.updateServer(timestep)
-    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
-    if maxSpawnableAsteroids then
+    RespawnResourceAsteroids.updateVars()
+    if self.maxSpawnableAsteroids then
         RespawnResourceAsteroids.respawn(timestep)
     end
 end
 
 function RespawnResourceAsteroids.respawn(timestep)     -- respawns a % of the original Asteroid #
-    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids") or 0
-    if (maxSpawnableAsteroids == 0) then return end
+    if self.maxSpawnableAsteroids == nil or self.maxSpawnableAsteroids == 0 then return end
     local numRichAsteroids = RespawnResourceAsteroids.getRichAsteroids()
-    if numRichAsteroids >= maxSpawnableAsteroids then return end    -- enough asteroids in sector
-    local numRespawns = (timestep / config.respawnTime)
-    local amount = maxSpawnableAsteroids * config.respawnAmount * numRespawns
-    if (numRichAsteroids + amount) >= maxSpawnableAsteroids then
-        amount = maxSpawnableAsteroids - numRichAsteroids
+    if numRichAsteroids >= self.maxSpawnableAsteroids then return end    -- enough asteroids in sector
+    local numRespawns = (timestep / self.respawnTime)
+    local amount = self.maxSpawnableAsteroids * self.respawnAmount * numRespawns
+    if (numRichAsteroids + amount) >= self.maxSpawnableAsteroids then
+        amount = self.maxSpawnableAsteroids - numRichAsteroids
     end
-    if (amount < 1) then return end -- not enough time passed or config.respawnAmount too low
-
+    if (amount < 1) then return end -- not enough time passed or self.respawnAmount too low
+    print("Restored to:", math.floor(numRichAsteroids) .. "/" .. self.maxSpawnableAsteroids, "asteroids")
 
     -- respawn them
-    local asteroids = {Sector():getEntitiesByType(EntityType.Asteroid)}
-    local generator = SectorGenerator(Sector():getCoordinates())
+    local asteroids = {sector:getEntitiesByType(EntityType.Asteroid)}
+    local generator = SectorGenerator(sector:getCoordinates())
     local spawned = {}
     for i=1, amount do
         local size = random():getFloat(5.0, 25.0)
@@ -57,7 +77,7 @@ end
 
 function RespawnResourceAsteroids.getRichAsteroids()
     local asteroids = {}
-    local a = {Sector():getEntitiesByType(EntityType.Asteroid)} or {}
+    local a = {sector:getEntitiesByType(EntityType.Asteroid)} or {}
     for _, astro in ipairs(a) do
         local r = astro:getMineableResources()
         if r then
@@ -68,10 +88,6 @@ function RespawnResourceAsteroids.getRichAsteroids()
 end
 
 function RespawnResourceAsteroids.onRestoredFromDisk(time)
-    local maxSpawnableAsteroids = Sector():getValue("maxSpawnableAsteroids")
-    if not maxSpawnableAsteroids then
-        maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
-        Sector():setValue("maxSpawnableAsteroids", maxSpawnableAsteroids)
-    end
+    RespawnResourceAsteroids.updateVars()
     RespawnResourceAsteroids.respawn(time)
 end
