@@ -10,9 +10,9 @@ self.maxSpawnableAsteroids = nil
 --overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
     RespawnResourceAsteroids.updateVars()
-    if self.maxSpawnableAsteroids == nil then
+    if self.maxSpawnableAsteroids == nil or self.maxSpawnableAsteroids == 0 then
         self.maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
-        print("Found respawnable Asteroids:", self.maxSpawnableAsteroids)
+        --print("Found respawnable Asteroids:", self.maxSpawnableAsteroids, sector:getCoordinates())
         sector:setValue("maxSpawnableAsteroids", self.maxSpawnableAsteroids)
     end
     
@@ -55,7 +55,7 @@ function RespawnResourceAsteroids.respawn(timestep)     -- respawns a % of the o
         amount = self.maxSpawnableAsteroids - numRichAsteroids
     end
     if (amount < 1) then return end -- not enough time passed or self.respawnAmount too low
-    print("Restored to:", math.floor(numRichAsteroids) .. "/" .. self.maxSpawnableAsteroids, "asteroids")
+    --print("Restored to:", math.floor(numRichAsteroids) .. "/" .. self.maxSpawnableAsteroids, "asteroids")
 
     -- respawn them
     local asteroids = {sector:getEntitiesByType(EntityType.Asteroid)}
