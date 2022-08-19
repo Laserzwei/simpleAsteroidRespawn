@@ -1,7 +1,6 @@
 if onClient() then return end
 
 local config = include("data/config/simpleasteroidRespawn")
-local sector = Sector()
 
 self.respawnTime = config.respawnTime
 self.respawnAmount = config.respawnAmount  
@@ -9,6 +8,7 @@ self.maxSpawnableAsteroids = nil
 
 --overwriting vanilla initialize()
 function RespawnResourceAsteroids.initialize()
+    local sector = Sector()
     RespawnResourceAsteroids.updateVars()
     if self.maxSpawnableAsteroids == nil or self.maxSpawnableAsteroids == 0 then
         self.maxSpawnableAsteroids = RespawnResourceAsteroids.getRichAsteroids()
@@ -20,6 +20,7 @@ function RespawnResourceAsteroids.initialize()
 end
 
 function RespawnResourceAsteroids.updateVars() 
+    local sector = Sector()
     local maxSpawnableAsteroids = sector:getValue("maxSpawnableAsteroids")
     if maxSpawnableAsteroids ~= nil then
         self.maxSpawnableAsteroids = maxSpawnableAsteroids
@@ -58,6 +59,7 @@ function RespawnResourceAsteroids.respawn(timestep)     -- respawns a % of the o
     --print("Restored to:", math.floor(numRichAsteroids) .. "/" .. self.maxSpawnableAsteroids, "asteroids")
 
     -- respawn them
+    local sector = Sector()
     local asteroids = {sector:getEntitiesByType(EntityType.Asteroid)}
     local generator = SectorGenerator(sector:getCoordinates())
     local spawned = {}
@@ -77,7 +79,7 @@ end
 
 function RespawnResourceAsteroids.getRichAsteroids()
     local asteroids = {}
-    local a = {sector:getEntitiesByType(EntityType.Asteroid)} or {}
+    local a = {Sector():getEntitiesByType(EntityType.Asteroid)} or {}
     for _, astro in ipairs(a) do
         local r = astro:getMineableResources()
         if r then
